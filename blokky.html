@@ -1,0 +1,420 @@
+<script>
+var board=[
+        [1, 2, 3, 1, 3, 0],
+        [1, 1, 2, 1, 3, 0],
+        [2, 1, 2, 1, 2, 0],
+        [2, 2, 1, 3, 1, 0],
+        [1, 2, 1, 3, 3, 0],
+        [1, 2, 1, 3, 3, 0],
+    ];
+  var bw = 6;
+  var queue = [];
+  var checked = [];
+  var undostack = [];
+  var redostack = [];
+  var lvl = 1,
+        maxlvl = 7,
+	score = 0,
+	count=0;
+
+    function undo() {
+	if(score>2)
+	{
+        if (undostack.length > 0) {
+	    score=score/2;
+            var temp = [];
+            var x = 0;
+            while (x < bw) {
+                temp.push(board[x].slice())
+                x++;
+            }
+            redostack.push(temp);
+            temp = undostack.pop();
+            board = [];
+            x = 0;
+            while (x < bw) {
+                board.push(temp[x].slice())
+                x++;
+            }
+            drawz();
+        }}
+	else
+	{
+	alert("score too low")
+	}
+    }
+
+    function redo() {
+        if (redostack.length > 0) {
+            var temp = [];
+            var x = 0;
+            while (x < bw) {
+                temp.push(board[x].slice())
+                x++;
+            }
+            undostack.push(temp);
+            temp = redostack.pop();
+            board = [];
+            x = 0;
+            while (x < bw) {
+                board.push(temp[x].slice())
+                x++;
+            }
+            drawz();
+        }
+    }
+
+
+    function already(array, value) {
+        flag = 0;
+        i = 0;
+        while (i < array.length) {
+            if (array[i][0] == value[0] && array[i][1] == value[1]) {
+                flag = 1;
+                break;
+            }
+            i++;
+        }
+        return flag;
+    }
+
+    function en(queue, i, j) {
+        if (!already(checked, [i, j]) && !already(queue, [i, j]))
+            queue.push([i, j]);
+    }
+
+    function de(queue) {
+        if (queue.length > 0) {
+            temp = queue[0];
+            queue.shift();
+            return temp;
+        }
+
+    }
+
+    function check(i, j) {
+        if (board[i][j] != 0) {
+            if (j + 1 < bw) {
+                if (board[i][j + 1] == board[i][j])
+                    en(queue, i, j + 1);
+            }
+            if (j - 1 > -1) {
+                if (board[i][j - 1] == board[i][j])
+                    en(queue, i, j - 1);
+            }
+            if (i + 1 < bw) {
+                if (board[i + 1][j] == board[i][j])
+                    en(queue, i + 1, j);
+            }
+            if (i - 1 > -1) {
+                if (board[i - 1][j] == board[i][j])
+                    en(queue, i - 1, j);
+            }
+        }
+    }
+
+    function searchs(i, j) {
+        check(i, j);
+        checked.push([i, j]);
+        while (queue.length != 0) {
+            temp = de(queue);
+            checked.push(temp);
+            check(temp[0], temp[1]);
+        }
+        result = checked;
+        checked = [];
+        return result;
+    }
+
+    function drawz() {
+        k = 0, l = 0;
+        temp = "";
+        temp += "<table>";
+        while (k < bw) {
+            l = 0;
+            temp += "<tr>";
+            while (l < bw) {
+                temp += "<td><div id='blocky' class='color" + board[k][l] + "' onclick='clicky(" + k + "," + l + ")'></div></td>";
+                l++
+            }
+            temp += "</tr>";
+            k++;
+        }
+        temp += "</table>";
+
+        document.getElementById("aboard").innerHTML = temp;
+        document.getElementById("scr").value = score;
+        document.getElementById("lvl").value = lvl;
+    }
+
+
+    function getdown() {
+        k = 0;
+        while (k < bw) {
+            j = bw - 1;
+            while (j > 0) {
+                i = 0;
+                while (i < bw) {
+                    if (j > 0) {
+                        if (board[j][i] == 0) {
+                            temp = board[j][i];
+                            board[j][i] = board[j - 1][i];
+                            board[j - 1][i] = temp;
+                        }
+                    }
+                    i++;
+                }
+                j--;
+            }
+            k++;
+        }
+    }
+
+    function getright() {
+        k = 0;
+        while (k < bw) {
+            i = bw - 1;
+            while (i > 0) {
+                j = 0;
+                while (j < bw) {
+                    if (i > 0) {
+                        if (board[j][i] == 0) {
+                            temp = board[j][i];
+                            board[j][i] = board[j][i - 1];
+                            board[j][i - 1] = temp;
+                        }
+                    }
+                    j++;
+                }
+                i--;
+            }
+            k++;
+        }
+    }
+
+    function clickon(i, j) {
+        var k = 0;
+        var blob = searchs(i, j);
+        while (k < blob.length && blob.length > 1) {
+            console.log(blob.length)
+            score = parseInt(score) + parseInt(blob.length * blob.length);
+            temp = blob[k];
+            board[temp[0]][temp[1]] = 0;
+            k++;
+        }
+    }
+
+
+    function savestate() {
+        var temp = [];
+        var x = 0;
+        while (x < bw) {
+            temp.push(board[x].slice())
+            x++;
+        }
+        undostack.push(temp);
+    }
+
+    function clicky(i, j) {
+        savestate();
+        clickon(i, j);
+        getdown();
+        getright();
+        drawz();
+        checkend();
+    }
+
+    function checkend() {
+        var flag = 0;
+        var i = 0,
+            j = 0;
+	    count=0;
+        while (j < bw) {
+            i = 0;
+            while (i < bw) {
+                if (board[i][j] != 0) {
+                    if (j + 1 < bw) {
+                        if (board[i][j + 1] == board[i][j])
+                            flag = 1;
+                    }
+                    if (j - 1 > -1) {
+                        if (board[i][j - 1] == board[i][j])
+                            flag = 1;
+                    }
+                    if (i + 1 < bw) {
+                        if (board[i + 1][j] == board[i][j])
+                            flag = 1;
+                    }
+                    if (i - 1 > -1) {
+                        if (board[i - 1][j] == board[i][j])
+                            flag = 1;
+                    }
+		count++;
+                }
+                i++;
+            }
+            j++;
+        }
+
+
+        if (flag == 0) {
+            nextlvl();
+        }
+    }
+
+    function nextlvl() {
+        if (lvl < maxlvl && (count<lvl || count==0)) {
+            lvl++;
+            queue = [];
+            checked = [];
+            undostack = [];
+            redostack = [];
+            randomize();
+            drawz();
+        } else if(count>=(lvl-1)) {
+            alert("Gameover!\n "+ count+" blokky remain. \n no valid moves left \n Your score is" + score);
+            document.getElementById("aboard").innerHTML = "<h1>Game Over.</h1>"+ count+" blokky remain </br><input type='button' class='pure-button' onclick='replay();' value='Replay?'><br> make sure that the number of blokky remaining <br>is less than the level";
+        } else {
+		alert("Congratulations! you have crossed final level \n Your score is" + score);
+            document.getElementById("aboard").innerHTML = "<h1>Congratulations</h1></br>you have completed all the levels <br><input type='button' class='pure-button' onclick='replay();' value='Replay?'><br> If u liked this game share it on facebook and like the page";
+	}
+    }
+
+    function replay() {
+        lvl = 0;
+        score = 0;
+	count=0;
+        nextlvl();
+    }
+
+    function randomize() {
+        var p, o;
+        p = 0;
+        while (p < bw) {
+            o = 0;
+            while (o < bw) {
+                board[p][o] = Math.floor((Math.random() * (lvl + 1)) + 1);
+                o++;
+            }
+            p++;
+        }
+
+    }
+    randomize();
+</script>
+<style>
+    body {
+        background-color: #CFD8DC;
+        color: #000;
+    }
+    
+    table {
+        padding: 1px;
+        border: 1px solid;
+        box-shadow: 2px 1px 5px grey;
+    }
+    
+    #aboard {
+        padding: 20px;
+	background-color:#FFF:
+    }
+    
+    td {
+        width: 50px;
+        height: 50px;
+    }
+    
+    #blocky {
+        width: 50px;
+        height: 50px;
+        border: 1px solid;
+        position: relative;
+    }
+    
+    #Score {
+        xwidth: 500px;
+        height: 50px;
+    }
+    
+    .pad {
+        margin: 5px;
+        padding: 5px;
+    }
+    
+    h2 {
+        padding: 5px;
+        background-color: #37474F;
+        color: #F5F5F5;
+        box-shadow: 2px 1px 5px grey;
+    }
+    
+    .color0 {
+        background-color: #F5F5F5;
+        color: #F5F5F5;
+    }
+    
+    .color1 {
+        background-color: #E91E63;
+        color: #E91E63;
+    }
+    
+    .color4 {
+        background-color: #9C27B0;
+        color: #9C27B0;
+    }
+    
+    .color3 {
+        background-color: #2196F3;
+        color: #2196F3;
+    }
+    
+    .color2 {
+        background-color: #009688;
+        color: #009688;
+    }
+    
+    .color5 {
+        background-color: #4CAF50;
+        color: #4CAF50;
+    }
+    
+    .color6 {
+        background-color: #E65100;
+        color: #E65100;
+    }
+    
+    .color7 {
+        background-color: #0D47A1;
+        color: #0D47A1;
+    }
+    
+    .color8 {
+        background-color: #880E4F;
+        color: #880E4F;
+    }
+a{
+color:#FFF;
+text-decoration:none;
+}
+</style>
+<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Blockky</title>
+
+<body onload="drawz();">
+
+    <center>
+        <h2><a href='http://gadget-geek-prashant.blogspot.in'>Blokky </br><small>by Life of a gadget geek</small></a></h2>click a group of same color to make blokky vanish
+        <div id="aboard">
+        </div>
+	
+<div id="Score">
+            Level:
+            <input class='pad pure-button' id='lvl' size=1 value=1> Score:
+            <input class='pad pure-button' id='scr' size=5 value=0>
+            <br>
+            <input class='pad pure-button' type='button' onclick="undo();" value="Undo">
+            <input class='pad pure-button' type='button' onclick="redo();" value="Redo">
+        </div>
+    </center>
+</body>
